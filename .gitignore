@@ -11,6 +11,9 @@ __pycache__/*
 *.py[cod]
 *$py.class
 
+#sqlite
+backend/storage/*
+
 # node
 frontend/node_modules/*
 
