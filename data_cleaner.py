@@ -77,7 +77,7 @@ if __name__ == "__main__":
         f_scaled = scaler_x.transform(f_matrix)
         l_scaled = scaler_y.transform(l_matrix)
         
-        # 【关键修改 2】在井内滑动切分窗口
+        # 在井内滑动切分窗口
         X_w, y_w = create_sequences(f_scaled, l_scaled, TIME_STEPS)
         
         if len(X_w) > 0:
