@@ -1,1 +1,20 @@
+# Data files
 data/*
+*.npy
+*.pkl
+
+# Model Checkpoints
+models/*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# UV / Virtual Environment
+.venv/
+.python-version
+
+# OS files
+.DS_Store
+Thumbs.db

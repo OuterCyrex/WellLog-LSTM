@@ -1,0 +1,19 @@
+[project]
+name = "welllog-lstm"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "pandas",
+    "numpy",
+    "scipy",
+    "scikit-learn"
+]
+
+[project.optional-dependencies]
+train = [
+    "matplotlib"
+]
+

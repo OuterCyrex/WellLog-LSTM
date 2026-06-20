@@ -13,18 +13,25 @@ from sklearn.preprocessing import MinMaxScaler
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
+# Import shared logic and configuration
+from well_common import (
+    FEATURE_COLUMNS,
+    LABEL_COLUMN,
+    CURVE_COLUMNS,
+    load_and_clean_well,
+    apply_log_transform,
+    create_sequences,
+    LSTMRegressor,
+    SEQ_LEN,
+    STEP,
+    HIDDEN_SIZE,
+    NUM_LAYERS,
+    DROPOUT,
+)
 
-TRAIN_DIR = r"data\train"
-TEST_DIR = r"data\test"
-FEATURE_COLUMNS = ["AC", "CAL", "GR", "DEN", "RT", "RXO"]
-LABEL_COLUMN = "CNL"
-CURVE_COLUMNS = FEATURE_COLUMNS + [LABEL_COLUMN]
-LOG_COLUMNS = ["GR", "RT", "RXO"]
-SEQ_LEN = 30
-STEP = 1
-HIDDEN_SIZE = 64
-NUM_LAYERS = 2
-DROPOUT = 0.2
+# --- Hyperparameters & Configuration ---
+TRAIN_DIR = "data/train"
+TEST_DIR = "data/test"
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 256
 EPOCHS = 40
@@ -41,56 +48,6 @@ def set_seed(seed: int) -> None:
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
-
-def load_and_clean_well(file_path: str) -> pd.DataFrame:
-    df = pd.read_csv(file_path, skiprows=[1])
-    df.columns = [
-        "Well",
-        "Dataset",
-        "Depth",
-        "AC",
-        "CAL",
-        "CNL",
-        "DEN",
-        "GR",
-        "RT",
-        "RXO",
-    ]
-
-    df["Depth"] = pd.to_numeric(df["Depth"], errors="coerce")
-    for col in CURVE_COLUMNS:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    df.replace(-9999, np.nan, inplace=True)
-
-    bounds = {
-        "AC": (33, 180),
-        "CAL": (0, 100),
-        "CNL": (-5, 50),
-        "DEN": (1.5, 3.01),
-        "GR": (3, 500),
-        "RT": (1, 10000),
-        "RXO": (1, 10000),
-    }
-    for col, (low, high) in bounds.items():
-        df[col] = df[col].clip(lower=low, upper=high)
-
-    df = df.sort_values("Depth").reset_index(drop=True)
-    df[CURVE_COLUMNS] = df[CURVE_COLUMNS].interpolate(
-        method="linear", limit_direction="both"
-    )
-    df[CURVE_COLUMNS] = df[CURVE_COLUMNS].ffill().bfill()
-    df = df.dropna(subset=["Depth"] + CURVE_COLUMNS).reset_index(drop=True)
-
-    return df
-
-
-def apply_log_transform(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    for col in LOG_COLUMNS:
-        df[col] = np.log10(np.maximum(df[col].to_numpy(dtype=np.float64), 1e-9))
-    return df
 
 
 def load_well_group(data_dir: str) -> list[dict]:
@@ -140,15 +97,6 @@ def transform_well(df: pd.DataFrame, scaler_x: MinMaxScaler, scaler_y: MinMaxSca
     return x, y, depth
 
 
-def create_sequences(x: np.ndarray, y: np.ndarray, depth: np.ndarray, seq_len: int, step: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    x_seq, y_seq, depth_seq = [], [], []
-    for idx in range(0, len(x) - seq_len, step):
-        x_seq.append(x[idx : idx + seq_len])
-        y_seq.append(y[idx + seq_len])
-        depth_seq.append(depth[idx + seq_len])
-    return np.asarray(x_seq), np.asarray(y_seq), np.asarray(depth_seq)
-
-
 def build_dataset(wells: list[dict], scaler_x: MinMaxScaler, scaler_y: MinMaxScaler) -> tuple[np.ndarray, np.ndarray]:
     x_parts = []
     y_parts = []
@@ -185,30 +133,6 @@ def build_single_well_sequences(
         x=x_seq,
         y=y_seq,
     )
-
-
-class LSTMRegressor(nn.Module):
-    def __init__(self, input_size: int, hidden_size: int, num_layers: int, dropout: float):
-        super().__init__()
-        lstm_dropout = dropout if num_layers > 1 else 0.0
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.lstm = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=lstm_dropout,
-        )
-        self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(hidden_size, 1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=x.device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=x.device)
-        output, _ = self.lstm(x, (h0, c0))
-        output = self.dropout(output[:, -1, :])
-        return self.fc(output)
 
 
 def make_loader(x: np.ndarray, y: np.ndarray, batch_size: int, shuffle: bool) -> DataLoader:
@@ -286,12 +210,12 @@ def inverse_label(values: np.ndarray, scaler_y: MinMaxScaler) -> np.ndarray:
 def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
     y_true = np.asarray(y_true).reshape(-1)
     y_pred = np.asarray(y_pred).reshape(-1)
-    corr, _ = pearsonr(y_true, y_pred)
+    corr = float(np.asarray(pearsonr(y_true, y_pred))[0])
     return {
-        "R": float(corr),
+        "R": corr,
         "R2": float(r2_score(y_true, y_pred)),
         "MAE": float(mean_absolute_error(y_true, y_pred)),
-        "RMSE": float(mean_squared_error(y_true, y_pred, squared=False)),
+        "RMSE": float(np.sqrt(mean_squared_error(y_true, y_pred))),
     }
 
 
@@ -324,6 +248,7 @@ def summarize_metrics(results: list[dict]) -> tuple[dict, dict]:
 
 
 def save_artifacts(model: nn.Module, scaler_x: MinMaxScaler, scaler_y: MinMaxScaler) -> None:
+    os.makedirs("models", exist_ok=True)
     torch.save(model.state_dict(), "models/well_lstm_model.pth")
     with open("models/scaler_x.pkl", "wb") as f:
         pickle.dump(scaler_x, f)
@@ -360,42 +285,8 @@ def main() -> None:
     model = train_model(model, train_loader, val_loader, EPOCHS, LEARNING_RATE)
     save_artifacts(model, scaler_x, scaler_y)
 
-    results = []
-    for well in test_wells:
-        sequences = build_single_well_sequences(well, scaler_x, scaler_y)
-        if len(sequences.x) == 0:
-            continue
-        result = predict_well(model, sequences, scaler_y)
-        results.append(result)
-        print(
-            f"{result['well_name']}: "
-            f"R={result['R']:.4f}, "
-            f"R2={result['R2']:.4f}, "
-            f"MAE={result['MAE']:.4f}, "
-            f"RMSE={result['RMSE']:.4f}"
-        )
-
-    if not results:
-        raise ValueError("No test sequences were created.")
-
-    best, avg = summarize_metrics(results)
-    print("\nBest test well")
-    print(
-        f"{best['well_name']}: "
-        f"R={best['R']:.4f}, "
-        f"R2={best['R2']:.4f}, "
-        f"MAE={best['MAE']:.4f}, "
-        f"RMSE={best['RMSE']:.4f}"
-    )
-
-    print("\nAverage across test wells")
-    print(
-        f"R={avg['R']:.4f}, "
-        f"R2={avg['R2']:.4f}, "
-        f"MAE={avg['MAE']:.4f}, "
-        f"RMSE={avg['RMSE']:.4f}"
-    )
-
+    # Predict logic now is moved to well_lstm_predict.py 
+    # This file only focus on model training
 
 if __name__ == "__main__":
     main()
