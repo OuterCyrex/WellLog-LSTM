@@ -7,9 +7,12 @@ data/*
 models/*
 
 # Python
-__pycache__/
+__pycache__/*
 *.py[cod]
 *$py.class
+
+# node
+frontend/node_modules/*
 
 # UV / Virtual Environment
 .venv/
