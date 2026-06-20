@@ -13,7 +13,7 @@ LOG_COLUMNS = ["GR", "RT", "RXO"]
 # --- Model Architecture Configuration ---
 SEQ_LEN = 30
 STEP = 1
-HIDDEN_SIZE = 64
+HIDDEN_SIZE = 128
 NUM_LAYERS = 2
 DROPOUT = 0.2
 
