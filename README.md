@@ -55,10 +55,19 @@ npm install
 
 ### 1. 启动后端
 
-在项目根目录执行：
+为了确保后端服务使用正确的虚拟环境运行，避免依赖版本冲突，推荐使用以下两种方式之一启动后端：
 
+#### 方式 A：使用 `uv run`（推荐）
+在项目根目录直接运行：
 ```bash
-python backend\app.py
+uv run backend/app.py
+```
+
+#### 方式 B：手动激活虚拟环境运行
+在项目根目录运行：
+```bash
+source .venv/bin/activate
+python backend/app.py
 ```
 
 默认地址：
@@ -139,21 +148,7 @@ uv run well_lstm_predict.py
 
 ## 常见问题
 
-### 1. 后端启动报缺少依赖
-
-先执行：
-
-```bash
-uv sync
-```
-
-如果你是直接用 Python 启动，也可以手动安装：
-
-```bash
-pip install fastapi uvicorn sqlalchemy pandas numpy scipy scikit-learn torch python-multipart
-```
-
-### 2. 预测报模型文件不存在
+### 1. 预测报模型文件不存在
 
 确认 `models/` 目录下是否存在：
 
@@ -163,11 +158,10 @@ pip install fastapi uvicorn sqlalchemy pandas numpy scipy scikit-learn torch pyt
 
 如果没有，就先跑一遍训练脚本。
 
-### 3. 前端请求失败
+### 2. 前端请求失败
 
 确认：
 
 - 后端是否在 `127.0.0.1:8000`
 - 前端是否通过 `npm run dev` 启动
 - 浏览器请求是否走 `/api` 代理
-
