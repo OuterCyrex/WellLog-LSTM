@@ -24,6 +24,7 @@ from backend.predictor import predictor  # noqa: E402
 from well_common import load_and_clean_well  # noqa: E402
 
 FRONTEND_FILE = BASE_DIR / "frontend" / "index.html"
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist" / "index.html"
 MODEL_NAME = "WellLog-LSTM"
 
 
@@ -107,9 +108,12 @@ app.add_middleware(
 
 @app.get("/")
 def index():
-    if FRONTEND_FILE.exists():
-        return FileResponse(FRONTEND_FILE)
-    return {"message": "frontend/index.html not found"}
+    if FRONTEND_DIST.exists():
+        return FileResponse(FRONTEND_DIST)
+    return {
+        "message": "Vue frontend is expected to run from frontend/ with Vite.",
+        "hint": "cd frontend && npm install && npm run dev",
+    }
 
 
 @app.get("/api/health")
