@@ -43,39 +43,19 @@ uv sync
 uv sync --extra train
 ```
 
-### 2. 安装前端依赖
-
-进入 `frontend` 目录后执行：
+Alternatively, you can install the dependencies manually using `uv pip`:
 
 ```bash
-npm install
+# Default (predict)
+uv pip install -e .
+
+# With training extras
+uv pip install -e ".[train]"
 ```
 
-## 启动方式
+## 2. Data Directory Structure
 
-### 1. 启动后端
-
-在项目根目录执行：
-
-```bash
-python backend\app.py
-```
-
-默认地址：
-
-```text
-http://127.0.0.1:8000
-```
-
-### 2. 启动前端
-
-在 `frontend` 目录执行：
-
-```bash
-npm run dev
-```
-
-默认地址：
+Data files are excluded from Git via `.gitignore`. Before running the scripts, create a `data` directory in the project root and place your `.csv` files inside:
 
 ```text
 http://127.0.0.1:5173
@@ -114,60 +94,4 @@ uv run well_lstm_pipeline.py
 uv run well_lstm_predict.py
 ```
 
-该脚本用于读取已训练模型并输出评估结果。
-
-## 后端接口
-
-- `GET /api/health`
-- `GET /api/summary`
-- `GET /api/wells`
-- `POST /api/wells`
-- `PUT /api/wells/{well_id}`
-- `DELETE /api/wells/{well_id}`
-- `GET /api/wells/{well_id}/imports`
-- `POST /api/wells/{well_id}/imports`
-- `POST /api/wells/{well_id}/predict`
-- `GET /api/predictions`
-- `GET /api/predictions/{prediction_id}`
-
-## 使用流程
-
-1. 在“钻井管理”里新增钻井。
-2. 给钻井上传 CSV 文件。
-3. 点击“预测”生成结果。
-4. 切换到“钻井预测”查看 ECharts 大屏图表。
-
-## 常见问题
-
-### 1. 后端启动报缺少依赖
-
-先执行：
-
-```bash
-uv sync
-```
-
-如果你是直接用 Python 启动，也可以手动安装：
-
-```bash
-pip install fastapi uvicorn sqlalchemy pandas numpy scipy scikit-learn torch python-multipart
-```
-
-### 2. 预测报模型文件不存在
-
-确认 `models/` 目录下是否存在：
-
-- `well_lstm_model.pth`
-- `scaler_x.pkl`
-- `scaler_y.pkl`
-
-如果没有，就先跑一遍训练脚本。
-
-### 3. 前端请求失败
-
-确认：
-
-- 后端是否在 `127.0.0.1:8000`
-- 前端是否通过 `npm run dev` 启动
-- 浏览器请求是否走 `/api` 代理
-
+This script outputs the evaluation metrics (**Pearson R**, **R²**, **MAE**, and **RMSE**) for each test well.
