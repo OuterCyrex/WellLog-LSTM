@@ -146,7 +146,7 @@ function renderChart() {
 
 async function loadWells() {
   wells.value = await api.wells()
-  const routeWellId = route.query.wellId ? String(route.query.wellId) : ''
+  const routeWellId = route.query.wellId ? String(route.query.wellId) : '';
   const hasRouteWell = routeWellId && wells.value.some((item) => String(item.id) === routeWellId)
   if (hasRouteWell && !selectedWellId.value) {
     selectedWellId.value = routeWellId
