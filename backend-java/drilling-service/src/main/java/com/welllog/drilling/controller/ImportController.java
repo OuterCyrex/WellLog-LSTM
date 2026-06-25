@@ -26,12 +26,12 @@ public class ImportController {
     }
 
     @GetMapping
-    public List<ImportResponse> list(@PathVariable Long wellId) {
+    public List<ImportResponse> list(@PathVariable("wellId") Long wellId) {
         return importService.list(wellId).stream().map(this::toResponse).toList();
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ImportResponse upload(@PathVariable Long wellId, @RequestPart("file") MultipartFile file) {
+    public ImportResponse upload(@PathVariable("wellId") Long wellId, @RequestPart("file") MultipartFile file) {
         return toResponse(importService.addImport(wellId, file));
     }
 

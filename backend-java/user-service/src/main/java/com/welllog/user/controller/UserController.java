@@ -39,22 +39,22 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public UserResponse get(@PathVariable Long id) {
+    public UserResponse get(@PathVariable("id") Long id) {
         return toResponse(userService.getById(id));
     }
 
     @GetMapping("/by-username/{username}")
-    public UserResponse getByUsername(@PathVariable String username) {
+    public UserResponse getByUsername(@PathVariable("username") String username) {
         return toResponse(userService.getByUsername(username));
     }
 
     @PutMapping("/{id}")
-    public UserResponse update(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
+    public UserResponse update(@PathVariable("id") Long id, @Valid @RequestBody UpdateUserRequest request) {
         return toResponse(userService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable("id") Long id) {
         userService.delete(id);
     }
 

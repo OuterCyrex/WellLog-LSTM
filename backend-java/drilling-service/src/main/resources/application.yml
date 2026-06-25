@@ -21,13 +21,18 @@ spring:
       enabled: true
       path: /h2-console
   cloud:
-    discovery:
-      client:
-        simple:
-          instances:
-            user-service:
-              - uri: http://localhost:8081
+    consul:
+      host: 127.0.0.1
+      port: 8500
+      discovery:
+        prefer-ip-address: true
+        register: true
+        service-name: drilling-service
 
 logging:
   level:
     org.springframework.web: INFO
+
+python:
+  predictor:
+    base-url: http://127.0.0.1:8000

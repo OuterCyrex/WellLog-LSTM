@@ -20,6 +20,14 @@ spring:
     console:
       enabled: true
       path: /h2-console
+  cloud:
+    consul:
+      host: 127.0.0.1
+      port: 8500
+      discovery:
+        prefer-ip-address: true
+        register: true
+        service-name: user-service
 
 logging:
   level:

@@ -1,6 +1,5 @@
 <template>
   <div class="page-wrap prediction-page">
-
     <div class="metrics-grid prediction-history">
       <div class="card stat-card summary-card">
         <div class="stat-label">R</div>
@@ -29,18 +28,14 @@
             <div>
               <div class="panel-title">钻井预测</div>
               <div class="panel-subtitle">{{ currentWellName }} · 记录 #{{ currentPredictionId }}</div>
-
             </div>
             <div class="toolbar-right">
-              <el-tag >{{ pointCount }}个样本点</el-tag>
-              <el-select v-model="selectedWellId" class="search-box" placeholder="选择钻井" filterable
-                @change="handleWellChange">
+              <el-tag>{{ pointCount }} 个样本点</el-tag>
+              <el-select v-model="selectedWellId" class="search-box" placeholder="选择钻井" filterable @change="handleWellChange">
                 <el-option v-for="well in wells" :key="well.id" :label="well.name" :value="String(well.id)" />
               </el-select>
-              <el-select v-model="selectedPredictionId" class="search-box" placeholder="选择预测记录" filterable
-                @change="handlePredictionChange">
-                <el-option v-for="item in predictions" :key="item.id"
-                  :label="`#${item.id} · ${formatTime(item.created_at)}`" :value="String(item.id)" />
+              <el-select v-model="selectedPredictionId" class="search-box" placeholder="选择预测记录" filterable @change="handlePredictionChange">
+                <el-option v-for="item in predictions" :key="item.id" :label="`#${item.id} · ${formatTime(item.created_at)}`" :value="String(item.id)" />
               </el-select>
               <el-button @click="reload">刷新</el-button>
             </div>
@@ -113,22 +108,14 @@ function resizeCharts() {
 
 function renderChart() {
   if (!currentPrediction.value || !mainChartRef.value) return
-
   const rows = normalizePrediction(currentPrediction.value)
-
   nextTick(() => {
     mainChart = mainChart || echarts.init(mainChartRef.value)
     mainChart.setOption({
       backgroundColor: 'transparent',
       animationDuration: 500,
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'line' },
-      },
-      legend: {
-        top: 8,
-        textStyle: { color: '#334155' },
-      },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'line' } },
+      legend: { top: 8, textStyle: { color: '#334155' } },
       grid: { left: 24, right: 18, top: 48, bottom: 36, containLabel: true },
       xAxis: {
         type: 'value',
@@ -150,22 +137,8 @@ function renderChart() {
         splitLine: { lineStyle: { color: 'rgba(31,41,55,0.08)' } },
       },
       series: [
-        {
-          name: '实测',
-          type: 'line',
-          smooth: false,
-          showSymbol: false,
-          data: rows.map((row) => [row.depth, row.yTrue]),
-          lineStyle: { width: 2, color: '#06b6d4' },
-        },
-        {
-          name: '预测',
-          type: 'line',
-          smooth: false,
-          showSymbol: false,
-          data: rows.map((row) => [row.depth, row.yPred]),
-          lineStyle: { width: 2, color: '#2563eb' },
-        },
+        { name: '实测', type: 'line', smooth: false, showSymbol: false, data: rows.map((row) => [row.depth, row.yTrue]), lineStyle: { width: 2, color: '#06b6d4' } },
+        { name: '预测', type: 'line', smooth: false, showSymbol: false, data: rows.map((row) => [row.depth, row.yPred]), lineStyle: { width: 2, color: '#2563eb' } },
       ],
     })
   })
@@ -225,10 +198,7 @@ async function handleWellChange() {
 
 async function handlePredictionChange() {
   if (!selectedPredictionId.value) return
-  router.replace({
-    name: 'predict',
-    query: { wellId: selectedWellId.value, predictionId: selectedPredictionId.value },
-  })
+  router.replace({ name: 'predict', query: { wellId: selectedWellId.value, predictionId: selectedPredictionId.value } })
   await loadPredictionDetail(selectedPredictionId.value)
 }
 

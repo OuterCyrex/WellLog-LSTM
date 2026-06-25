@@ -11,6 +11,7 @@
       <div class="panel-hd">
         <div>
           <div class="panel-title">钻井管理</div>
+          <div class="panel-subtitle">创建井、导入文件、发起预测</div>
         </div>
         <div class="toolbar-right">
           <el-button type="primary" @click="openCreate">新增钻井</el-button>
@@ -21,10 +22,10 @@
       <div class="panel-body">
         <div class="toolbar">
           <div class="toolbar-left">
-            <el-input v-model="keyword" class="search-box" placeholder="搜索钻井名称 / 位置 / 备注" clearable />
+            <el-input v-model="keyword" class="search-box" placeholder="搜索名称 / 位置 / 备注" clearable />
           </div>
           <div class="toolbar-right">
-            <el-tag effect="dark" type="info">共 {{ filteredWells.length }} 口钻井</el-tag>
+            <el-tag effect="dark" type="info">共 {{ filteredWells.length }} 口井</el-tag>
           </div>
         </div>
 
@@ -35,9 +36,7 @@
             <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
             <el-table-column prop="import_count" label="导入数" width="90" align="center" />
             <el-table-column prop="prediction_count" label="预测数" width="90" align="center" />
-            <el-table-column prop="last_import_at" label="最近导入" min-width="170" />
-            <el-table-column prop="last_prediction_at" label="最近预测" min-width="170" />
-            <el-table-column label="操作" width="360" fixed="right">
+            <el-table-column label="操作" width="300" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
                 <el-button link type="primary" @click="openImports(row)">导入记录</el-button>
@@ -74,15 +73,14 @@
     </el-dialog>
 
     <el-drawer v-model="importDrawerVisible" :title="importDrawerTitle" size="480px">
-      <div class="panel-subtitle" style="margin-bottom: 12px">CSV 只保存本地路径，预测会直接读取最新导入文件。</div>
+      <div class="panel-subtitle" style="margin-bottom: 12px">上传后会存到后端内存库，预测会直接读取最新导入。</div>
       <el-skeleton v-if="importLoading" :rows="6" animated />
       <div v-else class="import-list">
         <div v-if="imports.length === 0" class="empty-state">暂无导入记录</div>
         <div v-for="item in imports" :key="item.id" class="import-item">
           <div>
             <div class="import-item-title">{{ item.original_name }}</div>
-            <div class="import-item-meta">行数：{{ item.row_count }} · 时间：{{ formatTime(item.created_at) }}</div>
-            <div class="import-item-meta" style="word-break: break-all">路径：{{ item.stored_path }}</div>
+            <div class="import-item-meta">大小：{{ item.row_count }} 字节</div>
           </div>
           <div>
             <el-button size="small" type="primary" @click="runPrediction(currentImportWellId, item.id)">用此批次预测</el-button>
@@ -100,25 +98,20 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { api } from '../api'
+import { getSession } from '../auth'
 
 const router = useRouter()
+const currentUser = getSession()
 
 const loading = ref(false)
 const saving = ref(false)
 const keyword = ref('')
 const wells = ref([])
 const summary = ref({ wells: 0, imports: 0, predictions: 0, latest_prediction: null })
-
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增钻井')
 const formRef = ref()
-const form = reactive({
-  id: null,
-  name: '',
-  location: '',
-  remark: '',
-})
-
+const form = reactive({ id: null, name: '', location: '', remark: '' })
 const importDrawerVisible = ref(false)
 const importDrawerTitle = ref('导入记录')
 const currentImportWellId = ref(null)
@@ -134,29 +127,17 @@ const rules = {
 const filteredWells = computed(() => {
   const term = keyword.value.trim().toLowerCase()
   if (!term) return wells.value
-  return wells.value.filter((item) => {
-    return [item.name, item.location, item.remark].some((field) => String(field || '').toLowerCase().includes(term))
-  })
+  return wells.value.filter((item) =>
+    [item.name, item.location, item.remark].some((field) => String(field || '').toLowerCase().includes(term)),
+  )
 })
 
 const statCards = computed(() => [
-  { label: '钻井总数', value: summary.value.wells ?? 0, foot: 'SQLite 数据库中的钻井记录' },
-  { label: 'CSV 导入', value: summary.value.imports ?? 0, foot: '导入文件仅保存本地路径' },
-  { label: '预测次数', value: summary.value.predictions ?? 0, foot: '每次预测都会持久化结果' },
-  {
-    label: '最新预测',
-    value: summary.value.latest_prediction ? `#${summary.value.latest_prediction.id}` : '-',
-    foot: summary.value.latest_prediction
-      ? `${summary.value.latest_prediction.well_name} · ${formatTime(summary.value.latest_prediction.created_at)}`
-      : '尚无预测记录',
-  },
+  { label: '钻井总数', value: summary.value.wells ?? 0 },
+  { label: 'CSV 导入', value: summary.value.imports ?? 0 },
+  { label: '预测次数', value: summary.value.predictions ?? 0 },
+  { label: '当前用户', value: currentUser?.username || '-' },
 ])
-
-function formatTime(value) {
-  if (!value) return '-'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
-}
 
 function resetForm() {
   form.id = null
@@ -202,13 +183,12 @@ async function submitForm() {
         name: form.name.trim(),
         location: form.location.trim() || null,
         remark: form.remark.trim() || null,
+        ownerUserId: currentUser?.id,
       }
       if (form.id) {
         await api.updateWell(form.id, payload)
-        ElMessage.success('钻井已更新')
       } else {
         await api.createWell(payload)
-        ElMessage.success('钻井已创建')
       }
       dialogVisible.value = false
       await reload()
@@ -224,7 +204,7 @@ async function removeWell(row) {
   try {
     await ElMessageBox.confirm(`确认删除钻井「${row.name}」吗？`, '提示', { type: 'warning' })
     await api.deleteWell(row.id)
-    ElMessage.success('钻井已删除')
+    ElMessage.success('已删除')
     await reload()
   } catch (error) {
     if (error !== 'cancel') ElMessage.error(error.message)
@@ -257,10 +237,9 @@ async function handleFileChange(event) {
   const wellId = uploadWellId.value
   event.target.value = ''
   if (!wellId) return
-
   try {
     await api.uploadImport(wellId, file)
-    ElMessage.success('CSV 已导入')
+    ElMessage.success('上传成功')
     await reload()
     if (importDrawerVisible.value && currentImportWellId.value === wellId) {
       imports.value = await api.imports(wellId)
@@ -273,7 +252,7 @@ async function handleFileChange(event) {
 async function runPrediction(wellId, importId = null) {
   try {
     const result = await api.predict(wellId, importId)
-    ElMessage.success(`预测已完成，记录 #${result.id}`)
+    ElMessage.success(`预测完成 #${result.id}`)
     await reload()
     router.push({ name: 'predict', query: { wellId, predictionId: result.id } })
   } catch (error) {

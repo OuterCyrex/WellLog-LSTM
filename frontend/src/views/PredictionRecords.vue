@@ -40,22 +40,12 @@
           <el-table-column prop="well_name" label="钻井" min-width="160" />
           <el-table-column prop="model_name" label="模型" min-width="180" />
           <el-table-column label="时间" min-width="180">
-            <template #default="{ row }">
-              {{ formatTime(row.created_at) }}
-            </template>
+            <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
           </el-table-column>
-          <el-table-column label="R" width="100">
-            <template #default="{ row }">{{ metric(row, 'R') }}</template>
-          </el-table-column>
-          <el-table-column label="R2" width="100">
-            <template #default="{ row }">{{ metric(row, 'R2') }}</template>
-          </el-table-column>
-          <el-table-column label="MAE" width="100">
-            <template #default="{ row }">{{ metric(row, 'MAE') }}</template>
-          </el-table-column>
-          <el-table-column label="RMSE" width="100">
-            <template #default="{ row }">{{ metric(row, 'RMSE') }}</template>
-          </el-table-column>
+          <el-table-column label="R" width="100"><template #default="{ row }">{{ metric(row, 'R') }}</template></el-table-column>
+          <el-table-column label="R2" width="100"><template #default="{ row }">{{ metric(row, 'R2') }}</template></el-table-column>
+          <el-table-column label="MAE" width="100"><template #default="{ row }">{{ metric(row, 'MAE') }}</template></el-table-column>
+          <el-table-column label="RMSE" width="100"><template #default="{ row }">{{ metric(row, 'RMSE') }}</template></el-table-column>
           <el-table-column label="操作" width="220" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" @click.stop="openDetail(row)">查看详情</el-button>

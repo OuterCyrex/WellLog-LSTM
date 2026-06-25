@@ -16,6 +16,7 @@ backend/storage/*
 
 # node
 frontend/node_modules/*
+frontend/dist/*
 
 # UV / Virtual Environment
 .venv/

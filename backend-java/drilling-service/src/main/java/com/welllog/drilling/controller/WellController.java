@@ -46,17 +46,17 @@ public class WellController {
     }
 
     @GetMapping("/{id}")
-    public WellResponse get(@PathVariable Long id) {
+    public WellResponse get(@PathVariable("id") Long id) {
         return toResponse(wellService.getById(id));
     }
 
     @PutMapping("/{id}")
-    public WellResponse update(@PathVariable Long id, @Valid @RequestBody UpdateWellRequest request) {
+    public WellResponse update(@PathVariable("id") Long id, @Valid @RequestBody UpdateWellRequest request) {
         return toResponse(wellService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable("id") Long id) {
         wellService.delete(id);
     }
 

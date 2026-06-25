@@ -2,15 +2,16 @@ package com.welllog.drilling.service;
 
 import com.welllog.drilling.domain.PredictionRecord;
 import com.welllog.drilling.domain.WellImport;
+import com.welllog.drilling.dto.PythonPredictionResponse;
 import com.welllog.drilling.exception.NotFoundException;
 import com.welllog.drilling.repository.PredictionRepository;
 import com.welllog.drilling.repository.WellImportRepository;
 import com.welllog.drilling.repository.WellRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -20,13 +21,17 @@ public class PredictionServiceImpl implements PredictionService {
     private final WellRepository wellRepository;
     private final WellImportRepository importRepository;
     private final PredictionRepository predictionRepository;
+    private final PythonPredictionClient pythonPredictionClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PredictionServiceImpl(WellRepository wellRepository,
                                  WellImportRepository importRepository,
-                                 PredictionRepository predictionRepository) {
+                                 PredictionRepository predictionRepository,
+                                 PythonPredictionClient pythonPredictionClient) {
         this.wellRepository = wellRepository;
         this.importRepository = importRepository;
         this.predictionRepository = predictionRepository;
+        this.pythonPredictionClient = pythonPredictionClient;
     }
 
     @Override
@@ -38,12 +43,11 @@ public class PredictionServiceImpl implements PredictionService {
         PredictionRecord record = new PredictionRecord();
         record.setWellId(wellId);
         record.setImportId(source.getId());
-        record.setModelName("stub-lstm-v1");
+        PythonPredictionResponse pythonResult = pythonPredictionClient.predict(source.getFileName(), source.getFileContent());
+        record.setModelName(pythonResult.model_name() == null ? "WellLog-LSTM" : pythonResult.model_name());
         record.setStatus("DONE");
-
-        PredictionStats stats = analyze(source.getFileContent());
-        record.setSummary("rows=" + stats.rows() + ", columns=" + stats.columns());
-        record.setResultJson(toJson(source, stats));
+        record.setSummary(buildSummary(pythonResult));
+        record.setResultJson(toJson(pythonResult));
         return predictionRepository.save(record);
     }
 
@@ -89,52 +93,22 @@ public class PredictionServiceImpl implements PredictionService {
                 .orElseThrow(() -> new NotFoundException("Import not found"));
     }
 
-    private PredictionStats analyze(byte[] fileContent) {
-        String text = new String(fileContent, StandardCharsets.UTF_8);
-        String[] lines = text.split("\\R");
-        long rows = Arrays.stream(lines).filter(line -> !line.isBlank()).count();
-        int columns = 0;
-        for (String line : lines) {
-            if (!line.isBlank()) {
-                columns = Math.max(columns, splitColumns(line));
-            }
+    private String buildSummary(PythonPredictionResponse result) {
+        if (result.metrics() == null) {
+            return "prediction-complete";
         }
-        return new PredictionStats(rows, columns, fileContent.length);
+        Object r = result.metrics().get("R");
+        Object r2 = result.metrics().get("R2");
+        Object mae = result.metrics().get("MAE");
+        Object rmse = result.metrics().get("RMSE");
+        return "R=%s, R2=%s, MAE=%s, RMSE=%s".formatted(r, r2, mae, rmse);
     }
 
-    private int splitColumns(String line) {
-        String[] comma = line.split(",");
-        if (comma.length > 1) {
-            return comma.length;
+    private String toJson(PythonPredictionResponse result) {
+        try {
+            return objectMapper.writeValueAsString(result);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalArgumentException("Failed to serialize python prediction result");
         }
-        String[] tabs = line.split("\\t");
-        if (tabs.length > 1) {
-            return tabs.length;
-        }
-        return line.trim().isEmpty() ? 0 : 1;
-    }
-
-    private String toJson(WellImport source, PredictionStats stats) {
-        return """
-                {
-                  "status": "DONE",
-                  "modelName": "stub-lstm-v1",
-                  "importId": %d,
-                  "fileName": "%s",
-                  "rows": %d,
-                  "columns": %d,
-                  "bytes": %d
-                }
-                """.formatted(
-                source.getId(),
-                escape(source.getFileName()),
-                stats.rows(),
-                stats.columns(),
-                stats.bytes()
-        );
-    }
-
-    private String escape(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

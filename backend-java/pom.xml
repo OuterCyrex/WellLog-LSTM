@@ -8,6 +8,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>gateway-service</module>
         <module>user-service</module>
         <module>drilling-service</module>
     </modules>
@@ -45,6 +46,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.13.0</version>
                     <configuration>
+                        <parameters>true</parameters>
                         <source>${java.version}</source>
                         <target>${java.version}</target>
                         <encoding>UTF-8</encoding>

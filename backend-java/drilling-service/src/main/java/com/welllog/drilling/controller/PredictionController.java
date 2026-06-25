@@ -23,12 +23,15 @@ public class PredictionController {
     }
 
     @GetMapping("/api/wells/{wellId}/predictions")
-    public List<PredictionResponse> listByWell(@PathVariable Long wellId) {
+    public List<PredictionResponse> listByWell(@PathVariable("wellId") Long wellId) {
         return predictionService.list(wellId).stream().map(this::toResponse).toList();
     }
 
     @PostMapping("/api/wells/{wellId}/predict")
-    public PredictionResponse predict(@PathVariable Long wellId, @RequestParam(required = false) Long importId) {
+    public PredictionResponse predict(
+            @PathVariable("wellId") Long wellId,
+            @RequestParam(value = "importId", required = false) Long importId
+    ) {
         return toResponse(predictionService.predict(wellId, importId));
     }
 
@@ -38,7 +41,7 @@ public class PredictionController {
     }
 
     @GetMapping("/api/predictions/{predictionId}")
-    public PredictionResponse getById(@PathVariable Long predictionId) {
+    public PredictionResponse getById(@PathVariable("predictionId") Long predictionId) {
         return toResponse(predictionService.getById(predictionId));
     }
 
