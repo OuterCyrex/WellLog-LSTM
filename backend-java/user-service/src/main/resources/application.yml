@@ -22,8 +22,8 @@ spring:
       path: /h2-console
   cloud:
     consul:
-      host: 127.0.0.1
-      port: 8500
+      host: ${SPRING_CLOUD_CONSUL_HOST:127.0.0.1}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
       discovery:
         prefer-ip-address: true
         register: true

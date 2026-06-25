@@ -26,4 +26,7 @@ frontend/dist/*
 .DS_Store
 Thumbs.db
 
-target/*
+**/target/
+
+# 忽略所有文档临时文件
+docs/~$.*

@@ -15,13 +15,13 @@ spring:
           uri: lb://drilling-service
           predicates:
             - Path=/api/health,/api/wells/**,/api/predictions/**
-  consul:
-    host: 127.0.0.1
-    port: 8500
-    discovery:
-      prefer-ip-address: true
-      register: true
-      service-name: gateway-service
+    consul:
+      host: ${SPRING_CLOUD_CONSUL_HOST:127.0.0.1}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      discovery:
+        prefer-ip-address: true
+        register: true
+        service-name: gateway-service
 
 logging:
   level:
