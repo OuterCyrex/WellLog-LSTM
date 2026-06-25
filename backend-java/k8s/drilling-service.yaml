@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drilling-service
+  namespace: welllog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drilling-service
+  template:
+    metadata:
+      labels:
+        app: drilling-service
+    spec:
+      containers:
+        - name: drilling-service
+          image: welllog/drilling-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_CLOUD_CONSUL_HOST
+              value: consul
+            - name: SPRING_CLOUD_CONSUL_PORT
+              value: "8500"
+            - name: PYTHON_PREDICTOR_BASE_URL
+              value: http://host.docker.internal:8000
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8082
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8082
+            initialDelaySeconds: 40
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drilling-service
+  namespace: welllog
+spec:
+  selector:
+    app: drilling-service
+  ports:
+    - port: 8082
+      targetPort: 8082
